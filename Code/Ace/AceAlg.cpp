@@ -56,8 +56,9 @@ namespace
 
 	   FactoryResource<DataRequest> pRequest;
 	   pRequest->setInterleaveFormat(BIP);
-	   pRequest->setWritable(true);
 	   DataAccessor accessor = pElement->getDataAccessor(pRequest.release());
+	   if (!accessor.isValid)
+		   return false;
 
 	   int rowCount = pDescriptor->getRowCount();
 	   int colCount = pDescriptor->getColumnCount();
@@ -177,8 +178,11 @@ namespace
 	   pRequest2->setWritable(true);
 	   DataAccessor accessor2 = pResults->getDataAccessor(pRequest2.release());
 	   
-	   for (int col = 0; col < colCount; col++)
-		   for (int row = 0; row < rowCount; row++)
+	   if (!accessor2.isValid)
+		   return false;
+	   
+	   for (int row = 0; row < rowCount; row++)
+		   for (int col = 0; col < colCount; col++)
 		   {
 			   accessor2->toPixel(row, col);
 			   float *mpData = reinterpret_cast<float*>(accessor2->getColumn());
