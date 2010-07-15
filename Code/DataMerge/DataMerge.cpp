@@ -23,7 +23,6 @@
 #include <Qt/QtGui>
 #include <fstream>
 
-
 #include <QtGui/QApplication>
 #include <QtGui/QMessageBox>
 #include "DesktopServices.h"
@@ -40,21 +39,29 @@ REGISTER_PLUGIN_BASIC(SpectralDataMerge, DataMerge);
 namespace 
 {
 	template <typename T>
-	void mergeElement(T *pData, int rowCount, int colCount, DataAccessor pSrcAcc, int i)
+	bool mergeElement(T *pData, int rowCount, int colCount, DataAccessor pSrcAcc, DataAccessor pDesAcc, int band)
 	{
 		char fileName[100];
-		sprintf(fileName, "D:\\data%d.txt", i);
-		ofstream file(fileName);
+//		int i = 0;
+//		sprintf(fileName, "D:\\data%d.txt", i);
+//		ofstream file(fileName);
 		
 		for (int row = 0; row < rowCount; row++) 	
 			for (int col = 0; col < colCount; col++)   	  
 			{
 				pSrcAcc->toPixel(row, col);
-				T *mpData = reinterpret_cast<T*>(pSrcAcc->getColumn());
-				file << " " << *mpData;
+				pDesAcc->toPixel(row, col);
+				T *pSrcData = reinterpret_cast<T*>(pSrcAcc->getColumn());
+				T *pDesData = reinterpret_cast<T*>(pDesAcc->getColumn());
+				pDesData[band] = *pSrcData;
+//				file << " " << *pSrcData;
 			}
-		file.close();
+//		file.close();
+		return true;
 	}
+
+
+    
 };
 
 DataMerge::DataMerge() :
@@ -79,71 +86,104 @@ DataMerge::~DataMerge()
 
 bool DataMerge::showGui()
 {
-
-	Service<DesktopServices> pDesktop;
 	Service<ModelServices> pModel;
-	StepResource pStep("Pixel Aspect Ratio Started.", "app", "5E4BCD48-E662-408b-93AF-F9127CE56C66");
+	StepResource pStep("Data Merge Begin", "app", "5E4BCD48-E662-408b-93AF-F9127CE56C66");
 
 	std::vector<DataElement*> cubes = pModel->getElements("RasterElement");
+
 	if (cubes.size() == 0)
 	{
-		QMessageBox::critical(NULL, "Pixel Aspect Ratio Test", "No RasterElement input found!", "OK");
+		QMessageBox::critical(NULL, "Spectral Data Merge", "No RasterElement input found!", "OK");
 		pStep->finalize(Message::Failure, "No RasterElement input found!");
 		return false;
 	}
 
-	int i = 0;
+	vector<DataElement*>::iterator initIter = cubes.begin();
+	RasterElement* pData = model_cast<RasterElement*>(*initIter);
+	
+	if (pData == NULL)
+	{
+		pStep->finalize(Message::Failure, "Cube Data error!");
+		return false;
+	}
+
+	RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
+	EncodingType type = pDesc->getDataType();
+	int rowCount = pDesc->getRowCount();
+	int colCount = pDesc->getColumnCount();
+	int bandCount = cubes.size();
+
+	RasterElement* pDesRaster = RasterUtilities::createRasterElement("DataMergeCube", rowCount,
+      colCount, bandCount, type, BSQ, true, NULL);
+	
+	if (pDesRaster == NULL)
+	{
+		QMessageBox::critical(NULL, "Spectral Data Merge", "No RasterElement input found!", "OK");
+		pStep->finalize(Message::Failure, "No RasterElement input found!");
+		return false;
+	}
+
+	FactoryResource<DataRequest> pRequest;
+	pRequest->setInterleaveFormat(BSQ);
+	pRequest->setWritable(true);
+	DataAccessor pDesAcc = pDesRaster->getDataAccessor(pRequest.release());
+	
+	if (!pDesAcc.isValid())
+	{
+		QMessageBox::critical(NULL, "Spectral Data Merge", "pDesRaster Data Accessor Error!", "OK");
+		pStep->finalize(Message::Failure, "pDesRaster Data Accessor Error!");
+		return false;
+	}
+
+	int band = 0;
 	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
 	{
+		
 		RasterElement* pData = model_cast<RasterElement*>(*element);
 		
 		if (pData != NULL)
 		{
 			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
-			int rowCount = pDesc->getRowCount();
-			int colCount = pDesc->getColumnCount();
+			if (rowCount != pDesc->getRowCount())
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
+				pStep->finalize(Message::Failure, "Merge Data Row Format Error!");
+				return false;			
+			}
+			
+			if (colCount != pDesc->getRowCount())
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
+				pStep->finalize(Message::Failure, "Merge Data Column Format Error!");
+				return false;			
+			}
+
 			FactoryResource<DataRequest> pRequest;
-			DataAccessor pSrcAcc = pData->getDataAccessor(pRequest.release());
-			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, colCount, pSrcAcc, i++);
+			DataAccessor pSrcAcc = pData->getDataAccessor(pRequest.release());	
+			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, colCount, pSrcAcc, pDesAcc, band);
+			band++;
 		}
 	}
-/*
-	mpGui = new DataMergeGui(pDesktop->getMainWidget(), "test", false);
-	connect(mpGui, SIGNAL(finished(int)), this, SLOT(dialogClosed()));
-	mpGui->show();
+	
+	Service<DesktopServices> pDesktop;
+	SpatialDataWindow* pWindow = static_cast<SpatialDataWindow*>(pDesktop->createWindow("DataMergeResult",
+	   SPATIAL_DATA_WINDOW));
 
-	pStep->finalize(Message::Success); */
+    SpatialDataView* pView = (pWindow == NULL) ? NULL : pWindow->getSpatialDataView();
+    if (pView == NULL)
+    {
+		pStep->finalize(Message::Failure, "SpatialDataView error!");
+	    return false;
+    }
+
+    pView->setPrimaryRasterElement(pDesRaster);
+    pView->createLayer(RASTER, pDesRaster);
+
 	return true;
 }
 
 bool DataMerge::execute(PlugInArgList* inputArgList, PlugInArgList* outputArgLists)
 {
-   	/*
-	Service<ModelServices> pModel;
-	std::vector<DataElement*> cubes = pModel->getElements("RasterELement");
-	
-	if (cubes.size() == 0)
-	{
-		QMessageBox::critical(NULL, "Data Merge", "No RasterElement input found!", "OK");
-//		pStep->finalize(Message::Failure, "No RasterElement input found!");
-		return false;
-	}
-	int i = 0;
-	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
-	{
-		RasterElement* pData = model_cast<RasterElement*>(*element);
-		
-		if (pData != NULL)
-		{
-			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
-			int rowCount = pDesc->getRowCount();
-			int colCount = pDesc->getColumnCount();
-			FactoryResource<DataRequest> pRequest;
-			DataAccessor pSrcAcc = pData->getDataAccessor(pRequest.release());
-			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, colCount, pSrcAcc, i++);
-		}
-	}
-*/
 	return showGui();
 }
 

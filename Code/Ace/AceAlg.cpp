@@ -304,7 +304,6 @@ bool AceAlgorithm::processAll()
    pRequest2->setWritable(true);
    DataAccessor accessor2 = pResults->getDataAccessor(pRequest2.release());
 
-
    SpatialDataWindow* pWindow = static_cast<SpatialDataWindow*>(pDesktop->createWindow(rname,
 	   SPATIAL_DATA_WINDOW));
 
