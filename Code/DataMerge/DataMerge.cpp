@@ -41,9 +41,9 @@ namespace
 	template <typename T>
 	bool mergeElement(T *pData, int rowCount, int colCount, DataAccessor pSrcAcc, DataAccessor pDesAcc, int band)
 	{
-		char fileName[100];
-//		int i = 0;
-//		sprintf(fileName, "D:\\data%d.txt", i);
+//		char fileName[100];
+
+//		sprintf(fileName, "D:\\data%d.txt", band);
 //		ofstream file(fileName);
 		
 		for (int row = 0; row < rowCount; row++) 	
@@ -54,7 +54,7 @@ namespace
 				T *pSrcData = reinterpret_cast<T*>(pSrcAcc->getColumn());
 				T *pDesData = reinterpret_cast<T*>(pDesAcc->getColumn());
 				pDesData[band] = *pSrcData;
-//				file << " " << *pSrcData;
+//				file << " " << pDesData[band];
 			}
 //		file.close();
 		return true;
@@ -151,7 +151,7 @@ bool DataMerge::showGui()
 				return false;			
 			}
 			
-			if (colCount != pDesc->getRowCount())
+			if (colCount != pDesc->getColCount())
 			{
 				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
 				pStep->finalize(Message::Failure, "Merge Data Column Format Error!");
