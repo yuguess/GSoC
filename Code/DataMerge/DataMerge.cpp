@@ -22,6 +22,7 @@
 #include <vector>
 #include <Qt/QtGui>
 #include <fstream>
+#include <map>
 
 #include <QtGui/QApplication>
 #include <QtGui/QMessageBox>
@@ -36,33 +37,6 @@ using namespace std;
 
 REGISTER_PLUGIN_BASIC(SpectralDataMerge, DataMerge);
 
-namespace 
-{
-	template <typename T>
-	bool mergeElement(T *pData, int rowCount, int colCount, DataAccessor pSrcAcc, DataAccessor pDesAcc, int band)
-	{
-//		char fileName[100];
-
-//		sprintf(fileName, "D:\\data%d.txt", band);
-//		ofstream file(fileName);
-		
-		for (int row = 0; row < rowCount; row++) 	
-			for (int col = 0; col < colCount; col++)   	  
-			{
-				pSrcAcc->toPixel(row, col);
-				pDesAcc->toPixel(row, col);
-				T *pSrcData = reinterpret_cast<T*>(pSrcAcc->getColumn());
-				T *pDesData = reinterpret_cast<T*>(pDesAcc->getColumn());
-				pDesData[band] = *pSrcData;
-//				file << " " << pDesData[band];
-			}
-//		file.close();
-		return true;
-	}
-
-
-    
-};
 
 DataMerge::DataMerge() :
    mpGui(NULL)
@@ -86,6 +60,7 @@ DataMerge::~DataMerge()
 
 bool DataMerge::showGui()
 {
+	
 	Service<ModelServices> pModel;
 	StepResource pStep("Data Merge Begin", "app", "5E4BCD48-E662-408b-93AF-F9127CE56C66");
 
@@ -112,7 +87,7 @@ bool DataMerge::showGui()
 	int rowCount = pDesc->getRowCount();
 	int colCount = pDesc->getColumnCount();
 	int bandCount = cubes.size();
-
+/*
 	RasterElement* pDesRaster = RasterUtilities::createRasterElement("DataMergeCube", rowCount,
       colCount, bandCount, type, BSQ, true, NULL);
 	
@@ -133,8 +108,8 @@ bool DataMerge::showGui()
 		QMessageBox::critical(NULL, "Spectral Data Merge", "pDesRaster Data Accessor Error!", "OK");
 		pStep->finalize(Message::Failure, "pDesRaster Data Accessor Error!");
 		return false;
-	}
-
+	}*/
+/*
 	int band = 0;
 	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
 	{
@@ -151,7 +126,7 @@ bool DataMerge::showGui()
 				return false;			
 			}
 			
-			if (colCount != pDesc->getColCount())
+			if (colCount != pDesc->getColumnCount())
 			{
 				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
 				pStep->finalize(Message::Failure, "Merge Data Column Format Error!");
@@ -163,9 +138,46 @@ bool DataMerge::showGui()
 			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, colCount, pSrcAcc, pDesAcc, band);
 			band++;
 		}
-	}
+	}*/
 	
-	Service<DesktopServices> pDesktop;
+	vector<string> filenameVec;
+	map<string, RasterElement*> filenameMap;
+	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
+	{
+		
+		RasterElement* pData = model_cast<RasterElement*>(*element);
+		
+		if (pData != NULL)
+		{
+			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
+			/*
+			if (rowCount != pDesc->getRowCount())
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
+				pStep->finalize(Message::Failure, "Merge Data Row Format Error!");
+				return false;			
+			}
+			
+			if (colCount != pDesc->getColumnCount())
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
+				pStep->finalize(Message::Failure, "Merge Data Column Format Error!");
+				return false;			
+			}*/
+			filenameMap[pData->getFilename()] = pData;
+			filenameVec.push_back(pData->getFilename());
+		}
+	}
+
+    Service<DesktopServices> pDesktop;
+	mpGui = new DataMergeGui(pDesktop->getMainWidget());
+    connect(mpGui, SIGNAL(finished(int)), this, SLOT(dialogClosed()));
+	mpGui->addImportList(filenameVec);
+	mpGui->setFilenameMap(filenameMap);
+	mpGui->setCubes(cubes);
+	mpGui->show();
+
+	/*
 	SpatialDataWindow* pWindow = static_cast<SpatialDataWindow*>(pDesktop->createWindow("DataMergeResult",
 	   SPATIAL_DATA_WINDOW));
 
@@ -178,7 +190,7 @@ bool DataMerge::showGui()
 
     pView->setPrimaryRasterElement(pDesRaster);
     pView->createLayer(RASTER, pDesRaster);
-
+*/
 	return true;
 }
 
@@ -189,20 +201,20 @@ bool DataMerge::execute(PlugInArgList* inputArgList, PlugInArgList* outputArgLis
 
 QWidget* DataMerge::getWidget() const
 {
-   return mpGui;
+    return mpGui;
 }
 
 void DataMerge::dialogClosed()
 {
-   abort();
+    abort();
 }
 
 bool DataMerge::serialize(SessionItemSerializer &serializer) const
 {
-   return serializer.serialize(NULL, 0); // force recreation on session load
+    return serializer.serialize(NULL, 0); // force recreation on session load
 }
 
 bool DataMerge::deserialize(SessionItemDeserializer &deserializer)
 {
-   return showGui();
+    return showGui();
 }

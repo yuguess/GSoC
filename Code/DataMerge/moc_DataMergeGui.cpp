@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'DataMergeGui.h'
 **
-** Created: Sun Jul 11 21:29:43 2010
+** Created: Mon Aug 2 16:25:20 2010
 **      by: The Qt Meta Object Compiler version 61 (Qt 4.5.2)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,20 +23,22 @@ static const uint qt_meta_data_DataMergeGui[] = {
        2,       // revision
        0,       // classname
        0,    0, // classinfo
-       2,   12, // methods
+       3,   12, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
 
  // slots: signature, parameters, type, tag, flags
       14,   13,   13,   13, 0x0a,
-      27,   13,   13,   13, 0x0a,
+      29,   13,   13,   13, 0x0a,
+      52,   13,   47,   13, 0x0a,
 
        0        // eod
 };
 
 static const char qt_meta_stringdata_DataMergeGui[] = {
-    "DataMergeGui\0\0applyScale()\0generateNewView()\0"
+    "DataMergeGui\0\0addMergeList()\0"
+    "removeMergeList()\0bool\0mergeData()\0"
 };
 
 const QMetaObject DataMergeGui::staticMetaObject = {
@@ -64,11 +66,13 @@ int DataMergeGui::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: applyScale(); break;
-        case 1: generateNewView(); break;
+        case 0: addMergeList(); break;
+        case 1: removeMergeList(); break;
+        case 2: { bool _r = mergeData();
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = _r; }  break;
         default: ;
         }
-        _id -= 2;
+        _id -= 3;
     }
     return _id;
 }

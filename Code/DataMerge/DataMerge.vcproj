@@ -340,6 +340,10 @@
 				RelativePath=".\moc_DataMerge.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\moc_DataMergeGui.cpp"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
