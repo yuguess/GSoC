@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'DataMergeGui.h'
 **
-** Created: Mon Aug 2 16:25:20 2010
+** Created: Tue Aug 10 20:57:37 2010
 **      by: The Qt Meta Object Compiler version 61 (Qt 4.5.2)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_DataMergeGui[] = {
        2,       // revision
        0,       // classname
        0,    0, // classinfo
-       3,   12, // methods
+       6,   12, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -32,6 +32,9 @@ static const uint qt_meta_data_DataMergeGui[] = {
       14,   13,   13,   13, 0x0a,
       29,   13,   13,   13, 0x0a,
       52,   13,   47,   13, 0x0a,
+      64,   13,   47,   13, 0x0a,
+      87,   13,   47,   13, 0x0a,
+     102,   13,   47,   13, 0x0a,
 
        0        // eod
 };
@@ -39,6 +42,8 @@ static const uint qt_meta_data_DataMergeGui[] = {
 static const char qt_meta_stringdata_DataMergeGui[] = {
     "DataMergeGui\0\0addMergeList()\0"
     "removeMergeList()\0bool\0mergeData()\0"
+    "selectionChangedSlot()\0upButtonSlot()\0"
+    "downButtonSlot()\0"
 };
 
 const QMetaObject DataMergeGui::staticMetaObject = {
@@ -70,9 +75,15 @@ int DataMergeGui::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         case 1: removeMergeList(); break;
         case 2: { bool _r = mergeData();
             if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = _r; }  break;
+        case 3: { bool _r = selectionChangedSlot();
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = _r; }  break;
+        case 4: { bool _r = upButtonSlot();
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = _r; }  break;
+        case 5: { bool _r = downButtonSlot();
+            if (_a[0]) *reinterpret_cast< bool*>(_a[0]) = _r; }  break;
         default: ;
         }
-        _id -= 3;
+        _id -= 6;
     }
     return _id;
 }
