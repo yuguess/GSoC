@@ -197,14 +197,19 @@ namespace
 				if (result[j][i] < pixMin)
 					pixMin = result[j][i];
 		   }
-/*
-	   for(int col = 0; col < colCount; col++)
-		   for(int row = 0; row < rowCount; row++)
+		   /*
+	   double temp = pElement->getStatistics()->getMax();
+	   FILE *fp;
+	   fp = fopen("D://Max.txt", "w");
+	   fprintf(fp, "%lf", temp);
+	   fclose(fp);*/
+	   for(int j = 0; j < colCount; j++)
+		   for(int i = 0; i < rowCount; i++)
 		   {
-				result[row][col] = (result[row][col] - pixMin) / (pixMax - pixMin);	
-		   }
+			   result[j][i] = ((result[j][i] - pixMin) / (pixMax - pixMin)) * 10;	
+		   } 
 		  
-
+/*
       double threhold = 0.5;
 	  for(int col = 0; col < colCount; col++)
 		   for(int row = 0; row < rowCount; row++)
@@ -213,8 +218,8 @@ namespace
 				    result[row][col] = 1.0;
 				else
 					result[row][col] = 0.0;
-		   }*/ 
-
+		   } 
+*/
 	   FactoryResource<DataRequest> pRequest2;
 	   pRequest2->setWritable(true);
 	   DataAccessor accessor2 = pResults->getDataAccessor(pRequest2.release());
@@ -235,9 +240,6 @@ namespace
 	   return true;
    }
 }
-
-
-
 
 AceAlgorithm::AceAlgorithm(RasterElement* pElement, Progress* pProgress, bool interactive, const BitMask* pAoi) :
                AlgorithmPattern(pElement, pProgress, interactive, pAoi),
@@ -339,8 +341,27 @@ bool AceAlgorithm::processAll()
    BitMaskIterator iterChecker(getPixelsToProcess(), pElement);
 
    EncodingType type = pDescriptor->getDataType();		 
-   switchOnEncoding(type, aceAlg, NULL, pElement, pResults, spectrumValues, mpProgress);
+   switchOnEncoding(type, aceAlg, NULL, pElement, pResults, spectrumValues, mpProgress); 
 
+/////////////////////////////////////////////////////
+   vector<ColorType> layerColors, excludeColors;
+   excludeColors.push_back(ColorType(0, 0, 0));
+   excludeColors.push_back(ColorType(255, 255, 255));
+   ColorType::getUniqueColors(iSignatureCount, layerColors, excludeColors);
+
+   ColorType color;
+   if (0 <= static_cast<int>(layerColors.size()))
+   {
+	   color = layerColors[0];
+   }
+
+   double dMaxValue = pResults->getStatistics()->getMax();
+
+   // Displays results for current signature
+   displayThresholdResults(pResults, color, UPPER, mInputs.mThreshold, dMaxValue, layerOffset);
+ //  displayThresholdResults(pResults, color, UPPER, 0.6, dMaxValue, layerOffset);
+//////////////////////////////////////////////////////
+/*
    Service<DesktopServices> pDesktop;
 
    SpatialDataWindow* pWindow = static_cast<SpatialDataWindow*>(pDesktop->createWindow(rname,
@@ -356,7 +377,7 @@ bool AceAlgorithm::processAll()
 
    pView->setPrimaryRasterElement(pResults);
    pView->createLayer(RASTER, pResults);
-
+*/
 	return true;
 }
 

@@ -50,7 +50,8 @@ using namespace std;
 namespace 
 {
 	template <typename T>
-	bool mergeElement(T *pData, int rowCount, int colCount, DataAccessor pSrcAcc, DataAccessor pDesAcc, int band, Progress *pProgress)
+	bool mergeElement(T *pData, int rowCount, int colCount, DataAccessor pSrcAcc, DataAccessor pDesAcc, 
+		int band, Progress *pProgress, int size)
 	{
 		//char fileName[100];
 		//sprintf(fileName, "D:\\data%d.txt", band);
@@ -68,7 +69,7 @@ namespace
 		//		file << " " << pDesData[band];
 			}
 			pProgress->updateProgress("Processing RasterElement" + StringUtilities::toDisplayString(band + 1), 
-				(row+1) * 100 / rowCount, NORMAL);
+				((row+1) * (band + 1) * 100) / (rowCount * size), NORMAL);
 
 		}
 		//file.close();
@@ -86,6 +87,7 @@ DataMergeGui::DataMergeGui(QWidget *parent)
 	QHBoxLayout *listLayout = new QHBoxLayout();
     QGroupBox *importGroup = new QGroupBox(tr("Imported RasterElement"));
     importList = new QListWidget;
+	importList->setSelectionMode(QAbstractItemView::ContiguousSelection);
     QVBoxLayout *importLayout = new QVBoxLayout;
     importLayout->addWidget(importList);
     importGroup->setLayout(importLayout);
@@ -139,51 +141,56 @@ DataMergeGui::~DataMergeGui()
 
 void DataMergeGui::addMergeList()
 {
-    QListWidgetItem *crtItem = importList->currentItem();
-
-    QString crtText = crtItem->text();
-	
-	if (flag == 0)
+    //QListWidgetItem *crtItem = importList->currentItem();
+	QList<QListWidgetItem *> selectedList = importList->selectedItems();
+    
+	for (int i = 0; i < selectedList.count(); i++)
 	{
-		RasterElement *pFisrtElement = filenameMap[crtText.toStdString()];
-		RasterDataDescriptor* pFirstDesc = static_cast<RasterDataDescriptor*>(pFisrtElement->getDataDescriptor());
-		firstType = pFirstDesc->getDataType();
-		firstRowCount = pFirstDesc->getRowCount();
-		firstColCount = pFirstDesc->getColumnCount();
+		QListWidgetItem *crtItem = selectedList.at(i);
+		QString crtText = crtItem->text();
+
+		if (flag == 0)
+		{
+			RasterElement *pFisrtElement = filenameMap[crtText.toStdString()];
+			RasterDataDescriptor* pFirstDesc = static_cast<RasterDataDescriptor*>(pFisrtElement->getDataDescriptor());
+			firstType = pFirstDesc->getDataType();
+			firstRowCount = pFirstDesc->getRowCount();
+			firstColCount = pFirstDesc->getColumnCount();
+		}
+		else
+		{
+			RasterElement *pTempElement = filenameMap[crtText.toStdString()];
+			RasterDataDescriptor* pTempDesc = static_cast<RasterDataDescriptor*>(pTempElement->getDataDescriptor());
+			EncodingType tempType = pTempDesc->getDataType();
+			int tempRowCount = pTempDesc->getRowCount();
+			int tempColCount = pTempDesc->getColumnCount();
+
+			if (firstType != tempType)
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge RasterElement type different!", "OK");
+				return;
+			}
+
+			if (firstRowCount != tempRowCount)
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge RasterElement row different!", "OK");
+				return;
+			}
+
+			if (firstColCount != tempColCount)
+			{
+				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge RasterElement column different!", "OK");
+				return;
+			}
+		} 
+
+		QListWidgetItem *item = new QListWidgetItem(mergeList);
+		item->setText(crtText);
+		//	mergeElementList.push_back(filenameMap[crtText.toStdString()]);
+		removeButton->setEnabled(true);
+		mergeButton->setEnabled(true);
+		flag = 1;
 	}
-	else
-	{
-		RasterElement *pTempElement = filenameMap[crtText.toStdString()];
-		RasterDataDescriptor* pTempDesc = static_cast<RasterDataDescriptor*>(pTempElement->getDataDescriptor());
-		EncodingType tempType = pTempDesc->getDataType();
-		int tempRowCount = pTempDesc->getRowCount();
-		int tempColCount = pTempDesc->getColumnCount();
-
-		if (firstType != tempType)
-		{
-			QMessageBox::critical(NULL, "Spectral Data Merge", "Merge RasterElement type different!", "OK");
-			return;
-		}
-
-		if (firstRowCount != tempRowCount)
-		{
-			QMessageBox::critical(NULL, "Spectral Data Merge", "Merge RasterElement type row different!", "OK");
-			return;
-		}
-
-		if (firstColCount != tempColCount)
-		{
-			QMessageBox::critical(NULL, "Spectral Data Merge", "Merge RasterElement type column different!", "OK");
-			return;
-		}
-	} 
-
-    QListWidgetItem *item = new QListWidgetItem(mergeList);
-    item->setText(crtText);
-//	mergeElementList.push_back(filenameMap[crtText.toStdString()]);
-	removeButton->setEnabled(true);
-	mergeButton->setEnabled(true);
-	flag = 1;
 }
 
 void DataMergeGui::removeMergeList()
@@ -350,7 +357,7 @@ bool DataMergeGui::mergeData()
 	
 	if (pDesRaster == NULL)
 	{
-		QMessageBox::critical(NULL, "Spectral Data Merge", "No RasterElement input found!", "OK");
+		QMessageBox::critical(NULL, "Spectral Data Merge", "Create RasterElement failed, Please close the previous merge result!", "OK");
 		pStep->finalize(Message::Failure, "No RasterElement input found!");
 		return false;
 	}
@@ -393,7 +400,7 @@ bool DataMergeGui::mergeData()
 				pStep->finalize(Message::Failure, "Merge Data Row Format Error!");
 				return false;			
 			}
-			
+					
 			if (colCount != pDesc->getColumnCount())
 			{
 				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
@@ -405,9 +412,12 @@ bool DataMergeGui::mergeData()
 			pRequest->setInterleaveFormat(BIP);
 			pRequest->setWritable(true);
 			DataAccessor pSrcAcc = pData->getDataAccessor(pRequest.release());	
-			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, colCount, pSrcAcc, pDesAcc, band, pProgress);
+			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, 
+				colCount, pSrcAcc, pDesAcc, band, pProgress, mergeElementList.size());
+
 			band++;
 		}
+
 //		progressDialog->hide();
 	}
 

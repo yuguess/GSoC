@@ -101,58 +101,6 @@ bool DataMerge::showGui()
 	int rowCount = pDesc->getRowCount();
 	int colCount = pDesc->getColumnCount();
 	int bandCount = cubes.size();
-/*
-	RasterElement* pDesRaster = RasterUtilities::createRasterElement("DataMergeCube", rowCount,
-      colCount, bandCount, type, BSQ, true, NULL);
-	
-	if (pDesRaster == NULL)
-	{
-		QMessageBox::critical(NULL, "Spectral Data Merge", "No RasterElement input found!", "OK");
-		pStep->finalize(Message::Failure, "No RasterElement input found!");
-		return false;
-	}
-
-	FactoryResource<DataRequest> pRequest;
-	pRequest->setInterleaveFormat(BSQ);
-	pRequest->setWritable(true);
-	DataAccessor pDesAcc = pDesRaster->getDataAccessor(pRequest.release());
-	
-	if (!pDesAcc.isValid())
-	{
-		QMessageBox::critical(NULL, "Spectral Data Merge", "pDesRaster Data Accessor Error!", "OK");
-		pStep->finalize(Message::Failure, "pDesRaster Data Accessor Error!");
-		return false;
-	}*/
-/*
-	int band = 0;
-	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
-	{
-		
-		RasterElement* pData = model_cast<RasterElement*>(*element);
-		
-		if (pData != NULL)
-		{
-			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
-			if (rowCount != pDesc->getRowCount())
-			{
-				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
-				pStep->finalize(Message::Failure, "Merge Data Row Format Error!");
-				return false;			
-			}
-			
-			if (colCount != pDesc->getColumnCount())
-			{
-				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
-				pStep->finalize(Message::Failure, "Merge Data Column Format Error!");
-				return false;			
-			}
-
-			FactoryResource<DataRequest> pRequest;
-			DataAccessor pSrcAcc = pData->getDataAccessor(pRequest.release());	
-			switchOnEncoding(pDesc->getDataType(), mergeElement, NULL, rowCount, colCount, pSrcAcc, pDesAcc, band);
-			band++;
-		}
-	}*/
 	
 	vector<string> filenameVec;
 	map<string, RasterElement*> filenameMap;
@@ -164,20 +112,6 @@ bool DataMerge::showGui()
 		if (pData != NULL)
 		{
 			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
-			/*
-			if (rowCount != pDesc->getRowCount())
-			{
-				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
-				pStep->finalize(Message::Failure, "Merge Data Row Format Error!");
-				return false;			
-			}
-			
-			if (colCount != pDesc->getColumnCount())
-			{
-				QMessageBox::critical(NULL, "Spectral Data Merge", "Merge Data Format Error!", "OK");
-				pStep->finalize(Message::Failure, "Merge Data Column Format Error!");
-				return false;			
-			}*/
 			filenameMap[pData->getFilename()] = pData;
 			filenameVec.push_back(pData->getFilename());
 		}
