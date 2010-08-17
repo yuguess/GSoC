@@ -66,6 +66,7 @@ class AceAlgorithm : public AlgorithmPattern
    RasterElement* mpResults;
    AceInputs mInputs;
    bool mAbortFlag;
+   Progress* mpProgress;
 
 public:
    AceAlgorithm(RasterElement* pElement, Progress* pProgress, bool interactive, const BitMask* pAoi);

@@ -41,7 +41,7 @@
 #include "tnt_cmat.h"
 #include "tnt_array1d.h"
 #include <Qt/QtGui>
-
+#include <climits>
 
 using namespace std;
 
@@ -49,7 +49,7 @@ namespace
 {
 
    template <class T>
-   bool aceAlg(T* pData, RasterElement *pElement, RasterElement *pResults, vector<double> targetSpectrum)
+   bool aceAlg(T* pData, RasterElement *pElement, RasterElement *pResults, vector<double> targetSpectrum, Progress* pProgress)
    {
 		
 	   RasterDataDescriptor* pDescriptor = static_cast<RasterDataDescriptor*>(pElement->getDataDescriptor());
@@ -57,13 +57,13 @@ namespace
 	   FactoryResource<DataRequest> pRequest;
 	   pRequest->setInterleaveFormat(BIP);
 	   DataAccessor accessor = pElement->getDataAccessor(pRequest.release());
-	   if (!accessor.isValid)
+	   if (!accessor.isValid())
 		   return false;
 
 	   int rowCount = pDescriptor->getRowCount();
 	   int colCount = pDescriptor->getColumnCount();
-	   int bandCount = pDescriptor->getBandCount();
-       
+	   int bandCount = pDescriptor->getBandCount(); 
+
 	   TNT::Matrix<double> background(bandCount, rowCount * colCount, 0.0);
 	   TNT::Matrix<double> transBackground(rowCount * colCount, bandCount, 0.0);
 	   TNT::Matrix<double> tempBackground(rowCount * colCount, bandCount, 0.0);
@@ -73,16 +73,21 @@ namespace
 	   TNT::Matrix<double> transTarget(1, bandCount, 0.0);
 	   TNT::Matrix<double> means(bandCount, 1, 0.0);
 
-	   for (int band = 0; band < bandCount; band++)
-		   for (int row = 0; row < rowCount; row++) 	
-		    {
-			for (int col = 0; col < colCount; col++)   	  
+	   for (int row = 0; row < rowCount; row++)   		
+	   {
+		   for (int col = 0; col < colCount; col++)	
+		   {		
+			   for (int band = 0; band < bandCount; band++)
 			   {
-				   accessor->toPixel(row, col);
+
 				   T *mpData = reinterpret_cast<T*>(accessor->getColumn());
-				   background[band][row * colCount + col] = mpData[band];				  
+				   background[band][colCount * row + col] = mpData[band];  
 			   }
-		    }	   	   
+			   accessor->nextColumn();		
+		   }
+		   accessor->nextRow();
+		   pProgress->updateProgress("Initializing Step 1 of 4", (row+1) * 100 / rowCount, NORMAL);
+	   } 
 
 	   for (int band = 0; band < bandCount; band++)
 	   {
@@ -98,6 +103,8 @@ namespace
 		   means[row][0] /= background.num_cols();
 	   }
 
+
+
 	   for (int row = 0; row < background.num_rows(); row++) 
 	   {
 		   for (int col = 0; col < background.num_cols(); col++)
@@ -112,15 +119,16 @@ namespace
 	   } 	
 
 	   transBackground = TNT::transpose(background);
-	   covMatrix = matmult(background, transBackground);
 
+	   covMatrix = matmult(background, transBackground);
+	
 	   for (int row = 0; row < covMatrix.num_rows(); row++) 
 	   {
 		   for (int col = 0; col < covMatrix.num_cols(); col++)
 		   {
 			   covMatrix[row][col] /= (rowCount * colCount); 
-
-		   } 	
+		   }
+		   pProgress->updateProgress("Calculating Step 2 of 4", (row + 1) * 100 / covMatrix.num_rows(), NORMAL);
 	   }
 
 	   double **pSrc = covMatrix;
@@ -151,6 +159,7 @@ namespace
 			   transBackground[row][col] *= tempBackground[row][col]; 
 		   }
 
+
 	   TNT::Matrix<double> denominatorMat(rowCount * colCount, 1, 0.0);
 
 	   for (int row = 0; row < transBackground.num_rows(); row++)
@@ -159,6 +168,7 @@ namespace
 			{
 				   denominatorMat[row][0] += transBackground[row][col];
 			}
+			pProgress->updateProgress("Calculating Step 3 of 4", (row + 1) * 100 / transBackground.num_rows(), NORMAL);
 	   }
 
 	   TNT::Matrix<double> singleMatrix(1, 1, 0.0);
@@ -172,23 +182,57 @@ namespace
 	   for (int col = 0; col < numeratorMat.num_cols(); col++)
 	   {
 		   numeratorMat[0][col] /= denominatorMat[col][0];
-	   }
+	   }	
+
+	   TNT::Matrix<double> result(colCount, rowCount, 0.0);
+	  
+	   double pixMax = INT_MIN;
+	   double pixMin = INT_MAX;
+	   for(int i = 0; i < rowCount; i++)
+		   for(int j = 0; j < colCount; j++)
+		   {
+				result[j][i] = numeratorMat[0][i * colCount + j]; 
+				if (result[j][i] > pixMax)
+					pixMax = result[j][i];
+				if (result[j][i] < pixMin)
+					pixMin = result[j][i];
+		   }
+/*
+	   for(int col = 0; col < colCount; col++)
+		   for(int row = 0; row < rowCount; row++)
+		   {
+				result[row][col] = (result[row][col] - pixMin) / (pixMax - pixMin);	
+		   }
+		  
+
+      double threhold = 0.5;
+	  for(int col = 0; col < colCount; col++)
+		   for(int row = 0; row < rowCount; row++)
+		   {
+				if (result[row][col] > 0.2)
+				    result[row][col] = 1.0;
+				else
+					result[row][col] = 0.0;
+		   }*/ 
 
 	   FactoryResource<DataRequest> pRequest2;
 	   pRequest2->setWritable(true);
 	   DataAccessor accessor2 = pResults->getDataAccessor(pRequest2.release());
-	   
-	   if (!accessor2.isValid)
+
+	   if (!accessor2.isValid())
 		   return false;
 	   
-	   for (int row = 0; row < rowCount; row++)
-		   for (int col = 0; col < colCount; col++)
-		   {
+	   for (int col = 0; col < colCount; col++)
+	   {
+			for (int row = 0; row < rowCount; row++)
+			{
 			   accessor2->toPixel(row, col);
 			   float *mpData = reinterpret_cast<float*>(accessor2->getColumn());
-			   (*mpData) = (float)numeratorMat[0][col * rowCount + row]; 
-		   }
-		return true;
+			   (*mpData) = (float)result[col][row]; 
+			}
+			pProgress->updateProgress("Calculating Step 4 of 4", (col + 1) * 100 / colCount, NORMAL);
+	   }
+	   return true;
    }
 }
 
@@ -200,6 +244,7 @@ AceAlgorithm::AceAlgorithm(RasterElement* pElement, Progress* pProgress, bool in
                mpResults(NULL),
                mAbortFlag(false)
 {
+	mpProgress = pProgress;
 }
 
 bool AceAlgorithm::preprocess()
@@ -212,8 +257,6 @@ bool AceAlgorithm::processAll()
    auto_ptr<Wavelengths> pWavelengths;
 
    ProgressTracker progress(getProgress(), "Starting Ace", "spectral", "C4320027-6359-4F5B-8820-8BC72BF1B8F0");
-   progress.getCurrentStep()->addProperty("Interactive", isInteractive());
-
    RasterElement* pElement = getRasterElement();
    if (pElement == NULL)
    {
@@ -221,7 +264,6 @@ bool AceAlgorithm::processAll()
       return false;
    }
 
-   progress.getCurrentStep()->addProperty("Cube", pElement->getName());
    const RasterDataDescriptor* pDescriptor = static_cast<RasterDataDescriptor*>(pElement->getDataDescriptor());
    VERIFY(pDescriptor != NULL);
 
@@ -274,6 +316,7 @@ bool AceAlgorithm::processAll()
 	   rname += "AceTemp";
 	   resultsIsTemp = true;
    }
+
    pResults = createResults(numRows, numColumns, rname);
    if (pResults == NULL)
    {
@@ -296,13 +339,9 @@ bool AceAlgorithm::processAll()
    BitMaskIterator iterChecker(getPixelsToProcess(), pElement);
 
    EncodingType type = pDescriptor->getDataType();		 
-   switchOnEncoding(type, aceAlg, NULL, pElement, pResults, spectrumValues);
+   switchOnEncoding(type, aceAlg, NULL, pElement, pResults, spectrumValues, mpProgress);
 
    Service<DesktopServices> pDesktop;
-
-   FactoryResource<DataRequest> pRequest2;
-   pRequest2->setWritable(true);
-   DataAccessor accessor2 = pResults->getDataAccessor(pRequest2.release());
 
    SpatialDataWindow* pWindow = static_cast<SpatialDataWindow*>(pDesktop->createWindow(rname,
 	   SPATIAL_DATA_WINDOW));
