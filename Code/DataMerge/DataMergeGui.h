@@ -5,12 +5,15 @@
 #include <vector>
 #include <string>
 #include <map>
+#include "ImportElement.h"
 #include "typesfile.h"
 
 class QListWidget;
 class RasterElement;
 class DataElement;
 class Progress;
+class QTreeWidget;
+class QTreeWidgetItem;
 
 class DataMergeGui :  public QDialog
 {
@@ -18,10 +21,15 @@ class DataMergeGui :  public QDialog
 public:
     DataMergeGui(QWidget *parent);
     ~DataMergeGui();
-    void addImportList(std::vector<std::string>& vec);
+    //void addImportList(std::vector<std::string>& vec);
+	void addImportList(std::vector<ImportElement>& vec);
 	void setFilenameMap(std::map<std::string, RasterElement*> para);
 	void setCubes(std::vector<DataElement*>& para);
 	void setProgress(Progress *paraProgress);
+	void updateCheckState(QTreeWidgetItem *parent, Qt::CheckState state);
+	RasterElement* extractRasterElement(QString str);
+	int extractMergeBand(QString str);
+
 
 public slots:
     void addMergeList();
@@ -30,10 +38,12 @@ public slots:
 	bool selectionChangedSlot();
 	bool upButtonSlot();
 	bool downButtonSlot();
-
+	void treeItemSlot(QTreeWidgetItem *item, int column);
+	
 private:
     QListWidget *mergeList;
-    QListWidget *importList;
+	QTreeWidget *importTree;
+//    QListWidget *importList;
 	std::vector<RasterElement *> mergeElementList;
 	std::map<std::string, RasterElement*> filenameMap;
 	std::vector<DataElement*> cubes;

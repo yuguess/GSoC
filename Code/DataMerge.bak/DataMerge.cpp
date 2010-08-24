@@ -32,6 +32,7 @@
 #include "PlugInRegistration.h"
 #include "Service.h"
 #include "SessionItemSerializer.h"
+#include "ImportElement.h"
 
 using namespace std;
 
@@ -172,7 +173,8 @@ bool DataMerge::execute(PlugInArgList* inputArgList, PlugInArgList* outputArgLis
 	int colCount = pDesc->getColumnCount();
 	int bandCount = cubes.size();
 	
-	vector<string> filenameVec;
+	//vector<string> filenameVec;
+	vector<ImportElement> importVector;
 	map<string, RasterElement*> filenameMap;
 	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
 	{
@@ -191,6 +193,7 @@ bool DataMerge::execute(PlugInArgList* inputArgList, PlugInArgList* outputArgLis
 	mpGui = new DataMergeGui(pDesktop->getMainWidget());
     connect(mpGui, SIGNAL(finished(int)), this, SLOT(dialogClosed()));
 	mpGui->addImportList(filenameVec);
+	//mpGui->addImportList(importVector);
 	mpGui->setFilenameMap(filenameMap);
 	mpGui->setCubes(cubes);
 	mpGui->setProgress(pProgress);

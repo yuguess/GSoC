@@ -149,7 +149,7 @@ QDialog* Ace::getGui(void* pAlgData)
       inputs.mResultsName, inputs.mbCreatePseudocolor, false, NULL,
       Service<DesktopServices>()->getMainWidget());
 	pAceGui->setWindowTitle("Adaptive Cosine Estimator");
-
+	pAceGui->setThreshold(0.1);
    return pAceGui;
 }
 

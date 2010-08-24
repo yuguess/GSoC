@@ -32,6 +32,7 @@
 #include "PlugInRegistration.h"
 #include "Service.h"
 #include "SessionItemSerializer.h"
+#include "ImportElement.h"
 
 using namespace std;
 
@@ -102,7 +103,8 @@ bool DataMerge::showGui()
 	int colCount = pDesc->getColumnCount();
 	int bandCount = cubes.size();
 	
-	vector<string> filenameVec;
+	//vector<string> filenameVec;
+	vector<ImportElement> importVector;
 	map<string, RasterElement*> filenameMap;
 	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
 	{
@@ -113,14 +115,19 @@ bool DataMerge::showGui()
 		{
 			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
 			filenameMap[pData->getFilename()] = pData;
-			filenameVec.push_back(pData->getFilename());
+			ImportElement importElement;
+			importElement.bandNum = pDesc->getBandCount();
+			importElement.fileName = pData->getFilename();
+			importVector.push_back(importElement);
+			//filenameVec.push_back(pData->getFilename());
 		}
 	}
 
     Service<DesktopServices> pDesktop;
 	mpGui = new DataMergeGui(pDesktop->getMainWidget());
     connect(mpGui, SIGNAL(finished(int)), this, SLOT(dialogClosed()));
-	mpGui->addImportList(filenameVec);
+	mpGui->addImportList(importVector);
+//	mpGui->addImportList(filenameVec);
 	mpGui->setFilenameMap(filenameMap);
 	mpGui->setCubes(cubes);
 	mpGui->show();
@@ -172,7 +179,8 @@ bool DataMerge::execute(PlugInArgList* inputArgList, PlugInArgList* outputArgLis
 	int colCount = pDesc->getColumnCount();
 	int bandCount = cubes.size();
 	
-	vector<string> filenameVec;
+	//vector<string> filenameVec;
+	vector<ImportElement> importVector;
 	map<string, RasterElement*> filenameMap;
 	for (vector<DataElement*>::iterator element = cubes.begin(); element != cubes.end(); ++element)
 	{
@@ -183,14 +191,19 @@ bool DataMerge::execute(PlugInArgList* inputArgList, PlugInArgList* outputArgLis
 		{
 			RasterDataDescriptor* pDesc = static_cast<RasterDataDescriptor*>(pData->getDataDescriptor());
 			filenameMap[pData->getFilename()] = pData;
-			filenameVec.push_back(pData->getFilename());
+			ImportElement tempElement;
+			tempElement.fileName = pData->getFilename();
+			tempElement.bandNum = pDesc->getBandCount();
+			importVector.push_back(tempElement);
+			//filenameVec.push_back(tempElement);
 		}
 	}
 
     Service<DesktopServices> pDesktop;
 	mpGui = new DataMergeGui(pDesktop->getMainWidget());
     connect(mpGui, SIGNAL(finished(int)), this, SLOT(dialogClosed()));
-	mpGui->addImportList(filenameVec);
+	//mpGui->addImportList(filenameVec);
+	mpGui->addImportList(importVector);
 	mpGui->setFilenameMap(filenameMap);
 	mpGui->setCubes(cubes);
 	mpGui->setProgress(pProgress);

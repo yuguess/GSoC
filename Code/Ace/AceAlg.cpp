@@ -203,12 +203,13 @@ namespace
 	   fp = fopen("D://Max.txt", "w");
 	   fprintf(fp, "%lf", temp);
 	   fclose(fp);*/
+		   /*
 	   for(int j = 0; j < colCount; j++)
 		   for(int i = 0; i < rowCount; i++)
 		   {
 			   result[j][i] = ((result[j][i] - pixMin) / (pixMax - pixMin)) * 10;	
 		   } 
-		  
+		  */
 /*
       double threhold = 0.5;
 	  for(int col = 0; col < colCount; col++)

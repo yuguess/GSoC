@@ -332,6 +332,10 @@
 				RelativePath=".\DataMergeGui.h"
 				>
 			</File>
+			<File
+				RelativePath=".\ImportElement.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="moc"
